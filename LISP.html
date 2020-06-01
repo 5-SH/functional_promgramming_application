@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF=8">
+    <title>01/1</title>
+    <script src="./lib/fx.js"></script>
+  </head>
+</html>
+
+# 함수형 프로그래밍과 JAvaScript ES6+ 응용편
+
+1. 홀수 n개 더하기
+<script>
+  const log = console.log;
+
+  // 명령형 스타일 함수
+  function f1(limit, list) {
+    let acc = 0;
+    for (const a of list) {
+      if (a % 2) {
+        const b = a * a;
+        acc += b;
+        if (--limit === 0) break;
+      }
+    }
+
+    log(acc);
+  };
+
+  f1(3, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+</script>
+
+<script>
+  /**
+   * 이터러블, 리스트 프로세싱으로 코드를 변환
+   * 문장으로 구성된 명령형 코드를 이터러블,리스트 코드로 옮기는 방법
+   * 
+   * 2. if를 filter로
+   * 3. 값 변화 후 변수 할당을 map 으로
+   * 4. break 를 take 로
+   * 5. 축약 및 합산을 reduce 로
+   */
+  const add = (a, b) => a + b;
+  function f1(limit, list) {
+    // log(
+    //   _.reduce(add, 
+    //     L.take(limit, 
+    //       L.map(a => a * a, 
+    //         L.filter(a => a % 2, list)))));
+
+    _.go(
+      list,
+      L.filter(a => a % 2),
+      L.map(a => a * a),
+      L.take(limit),
+      _.reduce(add),
+      log
+    )
+  };
+  f1(3, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+</script>
+
+<script>
+  function f3(end) {
+    let i = 0;
+    while (i < end) {
+      log(i);
+      ++i;
+    }
+  }
+  f3(10);
+
+  /**
+   * while 을 range 로
+   * 효과를 each 로 구분
+   */
+  function f4(end) {
+    /**
+     * each 함수 사용 : side effect 를 가지는 작업을 한다.
+     * 
+     * each 함수의 결과는 input 값과 동일한 값을 out 한다.
+     * -> input 값을 다루는 순수함수가 아니고 
+     * 외부에 영향을 주는 작업을 하는 함수이다.
+     */
+    _.each(log, L.range(end));
+  }
+  f4(10);
+</script>
+
+8. 추억의 별 그리기, 구구단
+<script>
+  console.clear();
+
+  const join = sep => _.reduce((a, b) => `${a}${sep}${b}`)
+  _.go(
+    L.range(1, 6),
+    L.map(L.range),
+    L.map(L.map(_ => "*")),
+    L.map(join('')),
+    join('\n'),
+    log
+  );
+
+  // _.go(
+  //   L.range(1, 6),
+  //   L.map(s => _.go(
+  //     L.range(s),
+  //     L.map(a => '*'),
+  //     _.reduce((a, b) => `${a}${b}`)
+  //   )),
+  //   _.reduce((a, b) => `${a}\n${b}`),
+  //   log
+  // );
+
+  _.go(
+    _.range(2, 10),
+    _.map(a => _.go(
+      _.range(1, 10),
+      _.map(b => `${a}x${b}=${a * b}`),
+      join('\n')
+    )),
+    join('\n\n'),
+    log
+  )
+</script>
