@@ -1,4 +1,54 @@
 <script src="./lib/fx.js"></script>
-<script>
 
+## 안전한 합성에 대해
+
+1. map 으로 합성하기
+<script>
+  const log = console.log;
+  const f = x => x + 10;
+  const g = x => x - 5;
+  const fg = x => f(g(x));
+  log(f(g(10)));
+
+  // 모나드를 이용한 합성
+  _.go(
+    [10],
+    L.map(fg), 
+    _.each(log));
+  
+  _.go(
+    [],
+    L.map(fg), 
+    _.each(log));
+</script>
+
+2. find 대신 L.filter 써보기
+<script>
+  console.clear();
+  const users = [
+    { name: 'AA', age: 35 },
+    { name: 'BB', age: 26 },
+    { name: 'CC', age: 28 },
+    { name: 'DD', age: 34 },
+    { name: 'EE', age: 23 }
+  ];
+
+  var user = _.find(u => u.name == 'BB', users);
+  log(user);
+  
+  var user = _.find(u => u.name == 'FF', users);
+  // undefined
+  log(user); 
+  if (user) log(user);
+
+  _.each(log, 
+    L.take(1, 
+      L.filter(u => u.name == 'BB', users)));
+  
+  _.go(
+    users,
+    L.filter(u => u.name == 'FF'),
+    L.take(1),
+    _.each(log)
+  );
 </script>
