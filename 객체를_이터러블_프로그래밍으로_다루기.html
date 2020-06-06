@@ -1,0 +1,236 @@
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>04/1</title>
+  <script src="./lib/fx.js"></script>
+</head>
+<body>
+## 객체를 이터러블 프로그래밍으로 다루기
+<script>
+  const log = console.log;
+  const obj1 = {
+    a: 1,
+    b: 2,
+    c: 3,
+    d: 4
+  };
+</script>
+
+1. values
+<script>
+  log(Object.values(obj1));
+
+  L.values = function *(obj) {
+    for (const k in obj) yield obj[k];
+  };
+
+  _.go(
+    obj1,
+    L.values,
+    L.map(a => a + 10),
+    L.take(2),
+    _.reduce((a, b) => a + b),
+    log
+  );
+</script>
+
+2. entries
+<script>
+  L.entries = function *(obj) {
+    for (const k in obj) yield [k, obj[k]];
+  }
+
+  _.go(
+    obj1,
+    L.entries,
+    L.filter(([_, v]) => v % 2),
+    L.map(([k, v]) => ({ [k]: v })),
+    _.reduce(Object.assign),
+    log
+  )
+
+</script>
+
+3. keys
+<script>
+  L.keys = function *(obj) {
+    for (const k in obj) yield k;
+  }
+
+  _.go(
+    obj1,
+    L.keys,
+    _.each(log)
+  );
+</script>
+
+4. 어떠한 값이든 이터러블 프로그래밍으로 다루기
+  - 이터러블로 이터러블 프로그래밍
+  - 객체에 제너레이터를 이터레이터로 만들어서 이터러블 프로그래밍
+  - 어떤 제너레이터든 이터레이터로 만들어서 이터러블 프로그래밍
+<script>
+  /**
+   * 제네레이터 함수 : 코드의 상황을 값으로 다룰 수 있다.
+   * -> 코드를 통해서 이터레이터를 만들 수 있다.
+   * -> 어떠한 값, 상황이든 이터레이터로 다룰 수 있다.
+   */
+   
+  const g1 = function *(stop) {
+    let i = -1;
+    while (++i < stop) {
+      yield 10;
+      if (false) yield 20 + 30;
+      yield 30;
+    }
+  };
+
+  // log([...L.take(3, g1(3))]);
+
+  _.each(log, g1(1));
+  _.go(
+    g1(10),
+    L.take(3),
+    _.reduce((a, b) => a + b),
+    log
+  );
+</script>
+
+5. object
+<script>
+  console.clear();
+  const a = [['a', 1], ['b', 2], ['c', 3]];
+  const b = { a: 1, b: 2, c: 3 };
+
+  // const object = entries => _.go(
+  //   entries,
+  //   L.map(([k, v]) => ({ [k]: v })),
+  //   _.reduce(Object.assign)
+  // );
+
+  const object = entries => 
+  _.reduce((obj, [k, v]) => (obj[k] = v, obj), {}, entries);
+
+  log(object(a));
+  log(object(L.entries({b: 2, c: 3})));
+  
+  let m = new Map();
+  m.set('a', 10);
+  m.set('b', 20);
+  m.set('c', 30);
+  log(m);
+  
+  // map 객체는 JSON 으로 바로 바꿀 수 없다.
+  JSON.stringify(m);
+  /**
+   * map 객체는 이터러블을 지원한다.
+   * map 객체로 이터러블을 만들어서 평가하면 entries 를 리턴한다.
+   * 
+   * map 은 JS 의 내장 값이지만 JSON 으로 해석되는 객체는 아니기 때문에
+   * 사용자 정의 객체로 봐도 무방하다.
+   * 사용자 정의 객체가 이터러블 프로그래밍에 사용될 수 있는 규약을 가지고 있다.
+   */  
+  log(object(m));
+  log([...m[Symbol.iterator]()]);
+  log([...m.keys()]);
+  log([...m.values()]);
+
+</script>
+
+6. mapObject
+<script>
+  console.clear();
+  
+  /**
+   * 기존 명령형 프로그래밍의 한 함수로 mapObject 을 구현한다 하면 
+   * 값을 순회하면서 값을 꺼내서 함수를 적용하고 객체로
+   * 만들어서... 등 복잡한 로직을 한 번에 사고해야 하고
+   * 정확한 타이밍에 문장을 나열해야 한다.
+   * -> 난이도가 높고 오류가 생길 확률이 높다.
+   * 
+   * 함수형, 이터러블 프로그래밍, LISP 적인 사고는
+   * [['a', 1], ['b', 2], ['c', 3]]
+   * [['a', 11], ['b', 12], ['c', 13]]
+   * { a: 11 } ...
+   * { a: 11, b: 12, c: 13 }
+   * 
+   * 훨씬 쉽고 문장이 없기 때문에 에러가 날 확률이 적다.
+   * 기존에 잘 동작하는 함수를 조합해 함수를 만들기 때문에
+   * 쉽고 에러가 적은 프로그래밍을 할 수 있다.
+   */  
+  const mapObject = (f, obj) => _.go(
+    obj,
+    L.entries,
+    L.map(([k, v]) => [k, f(v)]),
+    object
+  );
+
+  // return { a: 11, b: 12, c: 13 }
+  log(mapObject(a => a + 10, { a: 1, b: 2, c: 3}));
+</script>
+
+7. pick
+<script>
+  console.clear();
+  const obj2 = { a: 1, b: 2, c: 3, d: 4, e: 5};
+  
+  /**
+   * undefined 값은 JSON 이나 DB 에 저장이 안된다.
+   * 값으로서 사용하지 않는 것이 좋다.
+   */
+  const pick = (ks, obj) => _.go(
+    ks,
+    L.map(k => [k, obj[k]]),
+    L.reject(([k, v]) => v === undefined),
+    object
+  );
+
+  log(pick(['b', 'c', 'z'], obj2));
+  /**
+   * obj2 에서 'b', 'c' 만 리턴
+   * { b: 2, c: 3 }
+   */ 
+</script>
+
+8. indexBy
+<script>
+  console.clear();
+  const users = [
+    { id: 5, name: 'AA', age: 35 },
+    { id: 10, name: 'BB', age: 26 },
+    { id: 19, name: 'CC', age: 28 },
+    { id: 23, name: 'DD', age: 34 },
+    { id: 24, name: 'EE', age: 23 }
+  ];
+
+  /**
+   * indexBy : key, value 쌍으로 만들어서 조회 비용을 싸게 만드는 함수.
+   * 기존 _.find 함수처럼 리스트를 순회하지 않고 참조해서 가져올 수 있도록
+   * key 를 id 값으로 설정한다. 
+   * 
+   * 이터러블인 값을 모두 순회하면서 새로운 형태의 값으로 다시 만들 때는
+   * reduce 함수를 활용한다. 
+   */
+  _.indexBy = (f, iter) => _.reduce((obj, a) => (obj[f(a)] = a, obj), {}, iter);
+
+  const users2 = _.indexBy(u => u.id, users);
+  log(users2);
+</script>
+
+9. indexBy 된 값을 filter 하기
+<script>
+  log(_.filter(({age}) => age > 30, users));
+  // 이터러블이고 key, value 쌍이라서 filter 가 되지 않는다.
+  log(_.filter(({age}) => age > 30, users2));
+
+  const users3 = _.go(
+    users2,
+    L.entries,
+    L.filter(([_, {age}]) => age > 30),
+    L.take(2),
+    object
+  );
+
+  log(users3[23]);
+</script>
+</body>
+</html>
