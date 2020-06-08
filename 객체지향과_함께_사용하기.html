@@ -1,0 +1,105 @@
+<script src="./lib/fx.js"></script>
+## 사용자 정의 객체를 이터러블 프로그래밍으로 다루기
+
+1. Map, Set
+<script>
+  const log = console.log;
+  let m = new Map();
+  m.set('a', 1);
+  m.set('b', 2);
+  m.set('c', 3);
+
+  // log([...m[Symbol.iterator]()]);
+  // log([...m.entries()]);
+  // log([...m.keys()]);
+  // log([...m.values()]);
+
+  _.go(
+    m,
+    L.filter(([k, v]) => v % 2),
+    entries => new Map(entries),
+    log
+  );
+
+  let s = new Set();
+  s.add(10);
+  s.add(20);
+  s.add(30);
+
+  log([...s]);
+  const add = (a, b) => a + b;
+  log(_.reduce(add, s));
+</script>
+
+2. Model, Collection
+<script>
+  console.clear();
+  /**
+   * 객체지향 프로그래밍으로 만들어진 사용자 정의 객체들을
+   * 이터러블 프로토콜을 통해 함수형 프로그래밍으로 확장해서 사용할 수 있다.
+   * 
+   * 
+   */
+
+  // 객체지향적인 설계 + 이터러블 프로그래밍
+  class Model {
+    constructor(attrs = {}) {
+      this._attrs = attrs;
+    }
+    get(k) {
+      return this._attrs[k];
+    }
+
+    set(k, v) {
+      this._attrs[k] = v;
+      return this;
+    }
+  }
+
+  class Collection {
+    constructor(models = []) {
+      this._models = models;
+    }
+
+    at(idx) {
+      return this._models[idx];
+    }
+
+    add(model) {
+      this._models.push(model);
+      return this;
+    }
+
+    *[Symbol.iterator]() {
+      yield *this._models;
+    }
+  }
+
+  const coll = new Collection();
+  coll.add(new Model({ id: 1, name: 'AA' }))
+  coll.add(new Model({ id: 3, name: 'BB' }))
+  coll.add(new Model({ id: 5, name: 'CC' }))
+
+  log(coll.at(2).get('name'));
+  log(coll.at(1).get('id'));
+
+  // Collection class 의 내용을 순회하기 힘들게 되어있다. 
+  _.go(
+    L.range(3),
+    L.map(i => coll.at(i)),
+    L.map(m => m.get('name')),
+    _.each(log)
+    );
+    
+  // -> Collection class 에 Symbol[iterator] 작성
+  _.go(
+    coll,
+    L.map(m => m.get('name')),
+    _.each(log)
+  );
+</script>
+
+3. Product, Products
+<script>
+  
+</script>
