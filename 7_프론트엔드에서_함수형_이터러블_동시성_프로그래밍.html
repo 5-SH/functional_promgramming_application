@@ -142,6 +142,12 @@
 </script>
 
 1. 이미지 목록 그리기
+
+2. 경고창 만들기
+  - confirm
+  - Promise 활용
+  - alert
+  - 중복 제거
 <script>
   const log = console.log;
 
@@ -183,57 +189,48 @@
         _.go(
           currentTarget,
           $.closest('.image'),
-          $.remove
+          $.remove,
         )  
     })
   );
 
   const Ui = {};
-  Ui.confirm = msg => new Promise(resolve => _.go(
+
+  Ui.message = _.curry((btns, msg) => new Promise(resolve => _.go(
     `
-      <div class="confirm">
-        <div class="body">
-          <div class="msg">${msg}</div>
-          <div class="buttons">
-            <button type="button" class="cancel">취소</button>
-            <button type="button" class="ok">확인</button>
-          </div>
+    <div class="confirm">
+      <div class="body">
+        <div class="msg">${msg}</div>
+        <div class="buttons">
+          ${_.strMap(btn => `
+            <button type="button" class="${btn.type}">${btn.name}</button>  
+          `, btns)}
         </div>
       </div>
+    </div>
     `,
     $.el,
     $.append($.qs('body')),
-    _.tap(
-      $.find('.ok'),
+    ..._.map(btn => _.tap(
+      $.find(`.${btn.type}`),
       $.on('click', e => _.go(
         e.currentTarget,
         $.closest('.confirm'),
         $.remove,
-        _ => resolve(true)
-      ))),
-    _.tap(
-      $.find('.cancel'),
-      $.on('click', e => _.go(
-        e.currentTarget,
-        $.closest('.confirm'),
-        $.remove,
-        _ => resolve(false)
-      ))),
-  ));
+        _ => resolve(btn.value)
+      ))), btns)
+  )));
 
-  async function f() {
-    await Ui.confirm('정말 삭제하시겠습니까?');
-    console.log('hi~');
-  };
+  Ui.confirm = Ui.message([
+      { name: '취소', type: 'cancel', value: false },
+      { name: '확인', type: 'ok', value: true },
+  ]);
 
-  // f();
+  Ui.alert = Ui.message([
+      { name: '확인', type: 'ok', value: true },
+  ]);
+
 </script>
-
-2. 경고창 만들기
-  - confirm
-  - Promise 활용
-  - alert
-  - 중복 제거
 
 3. 이미지 동시성 다루기
 4. 페이지 띄우기
