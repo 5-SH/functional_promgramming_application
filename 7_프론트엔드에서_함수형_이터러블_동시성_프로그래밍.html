@@ -177,6 +177,15 @@
     </div>
   `;
 
+  /**
+   * 재사용 가능한 고차함수의 특징
+   * 
+   * 1. 도메인(데이터 형)이 없다. : 함수 안에 데이터 형이 드러나는 부분을
+   * 분리하면 재사용 가능한 함수들이 나온다.
+   * 
+   * 2.  
+   * 
+   */
   Images.loader = limit => _.tap(
       $.findAll('img'),
       /**
@@ -189,17 +198,23 @@
         img.onload = () => resolve(img);
         img.src = img.getAttribute('lazy-src')
       })),
-      lazy => {
-        let r = L.range(Infinity);
-        return _.go(
-          lazy,
-          _.groupBy(_ => Math.floor(r.next().value / limit)),
-          L.values,
-          L.map(L.map(f => f())),
-          L.map(C.takeAll),
-          _.each(_.each($.addClass('fade-in')))
-        )
-      });
+      C.takeAllWithLimit(limit),
+      _.each(_.each($.addClass('fade-in'))));
+      
+  /**
+   * 평가될 준비된 값을 받아서 특정 limit 만큼 동시에 평가하는 함수
+   * 데이터 형이 드러나지 않음, 재사용 가능.
+   */
+  C.takeAllWithLimit = _.curry((limit, iter) => {
+    let r = L.range(Infinity);
+    return _.go(
+      lazy,
+      _.groupBy(_ => Math.floor(r.next().value / limit)),
+      L.values,
+      L.map(L.map(f => f())),
+      L.map(C.takeAll),
+      )
+  });
 
   _.go(
     Images.fetch(),
@@ -258,6 +273,8 @@
   Ui.alert = Ui.message([
       { name: '확인', type: 'ok', value: true },
   ]);
+
+  
 
 </script>
 
