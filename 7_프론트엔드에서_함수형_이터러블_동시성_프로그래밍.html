@@ -116,6 +116,18 @@
 
 ## 프론트엔드에서 함수형/이터러블/동시성 프로그래밍
 
+1. 이미지 목록 그리기
+
+2. 경고창 만들기
+  - confirm
+  - Promise 활용
+  - alert
+  - 중복 제거
+
+3. 이미지 동시성 다루기
+
+4. 페이지 띄우기
+
 <script>
   const $ = {};
 
@@ -143,15 +155,6 @@
   $.addClass = _.curry((name, img) => img.classList.add(name));
 </script>
 
-1. 이미지 목록 그리기
-
-2. 경고창 만들기
-  - confirm
-  - Promise 활용
-  - alert
-  - 중복 제거
-
-3. 이미지 동시성 다루기
 <script>
   const log = console.log;
 
@@ -179,12 +182,8 @@
 
   /**
    * 재사용 가능한 고차함수의 특징
-   * 
-   * 1. 도메인(데이터 형)이 없다. : 함수 안에 데이터 형이 드러나는 부분을
+   * : 도메인(데이터 형)이 없다. : 함수 안에 데이터 형이 드러나는 부분을
    * 분리하면 재사용 가능한 함수들이 나온다.
-   * 
-   * 2.  
-   * 
    */
   Images.loader = limit => _.tap(
       $.findAll('img'),
@@ -201,43 +200,13 @@
       C.takeAllWithLimit(limit),
       _.each(_.each($.addClass('fade-in'))));
       
-  /**
-   * 평가될 준비된 값을 받아서 특정 limit 만큼 동시에 평가하는 함수
-   * 데이터 형이 드러나지 않음, 재사용 가능.
-   */
-  C.takeAllWithLimit = _.curry((limit, iter) => {
+  _.groupBySize = _.curry((size, iter) => {
     let r = L.range(Infinity);
-    return _.go(
-      lazy,
-      _.groupBy(_ => Math.floor(r.next().value / limit)),
-      L.values,
-      L.map(L.map(f => f())),
-      L.map(C.takeAll),
-      )
+    return _.groupBy(_ => Math.floor(r.next().value / size), iter);
   });
+</script>
 
-  _.go(
-    Images.fetch(),
-    Images.tmpl,
-    $.el,
-    $.append($.qs('body')),
-    Images.loader(3),
-    $.findAll('.remove'),
-    /**
-     * 객체의 값을 가변적으로 다루기 때문에 일어나는 부작용.
-     * 객체의 레퍼런스를 인자로 받았는데, 사용해야하는 시점에 null 로 변경되었다.
-     * -> 값을 불변으로 다루기 위해 구조분해를 해서 인자를 받는다.
-     */
-    $.on('click', async ({ currentTarget }) => {
-      await Ui.confirm('정말 삭제하시겠습니까?') &&
-        _.go(
-          currentTarget,
-          $.closest('.image'),
-          $.remove,
-        )  
-    })
-  );
-
+<script>
   const Ui = {};
 
   Ui.message = _.curry((btns, msg) => new Promise(resolve => _.go(
@@ -274,10 +243,52 @@
       { name: '확인', type: 'ok', value: true },
   ]);
 
-  
-
+  Ui.remover = (btnSel, targetSel, before = _ => _, after = _ => _) => _.tap(
+    $.findAll(btnSel),
+    /**
+     * 객체의 값을 가변적으로 다루기 때문에 일어나는 부작용.
+     * 객체의 레퍼런스를 인자로 받았는데, 사용해야하는 시점에 null 로 변경되었다.
+     * -> 값을 불변으로 다루기 위해 구조분해를 해서 인자를 받는다.
+     */
+    $.on('click', async ({ currentTarget: ct }) => {
+      await Ui.confirm('정말 삭제하시겠습니까?') &&
+        _.go(
+          ct,
+          $.closest(targetSel),
+          _.tap(before),
+          $.remove,
+          _.tap(after)
+        )  
+    })
+  );
 </script>
 
-4. 페이지 띄우기
+<script>
+  /**
+   * 평가될 준비된 값을 받아서 특정 limit 만큼 동시에 평가하는 함수
+   * 데이터 형이 드러나지 않음, 재사용 가능.
+   */
+  C.takeAllWithLimit = _.curry((limit = Infinity, iter) => {
+    return _.go(
+      iter,
+      // 상위 scope 가 있고 그것을 사용하는 함수
+      _.groupBySize(limit),
+      L.values,
+      L.map(L.map(f => f())),
+      L.map(C.takeAll),
+      )
+  });
+
+  _.go(
+    Images.fetch(),
+    Images.tmpl,
+    $.el,
+    $.append($.qs('body')),
+    Ui.remover('.remove', '.image', _ => log('서버통신')),
+    Images.loader(3)
+  );
+
+  
+</script>
 </body>
 </html>
